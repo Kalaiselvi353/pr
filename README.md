@@ -1,6 +1,6 @@
 1.Smart home interior setup 
 
-Link:https://www.tinkercad.com/things/2sRsPBLQyE9-smart-home-using-sensors
+https://wokwi.com/projects/363034557428486145
 
 2.Smart home outer areas-automated plant watering system
 
