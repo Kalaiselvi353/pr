@@ -1,6 +1,6 @@
 1.Smart home interior setup 
 
-Link:https://wokwi.com/projects/363034557428486145
+Link:https://wokwi.com/projects/363034882611849217
 
 2.Smart home outer areas-automated plant watering system
 
