@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>PDF Chatbot</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #e5ddd5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+        }
+        #chat-container {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .msg {
+            max-width: 60%;
+            padding: 8px 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            clear: both;
+            word-wrap: break-word;
+        }
+        .user {
+            background: #dcf8c6;
+            float: right;
+        }
+        .bot {
+            background: #fff;
+            float: left;
+        }
+        #input-bar {
+            display: flex;
+            padding: 10px;
+            background: #fff;
+        }
+        #input-bar input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        #input-bar button {
+            margin-left: 10px;
+            padding: 10px 16px;
+            border: none;
+            background: #128c7e;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        img.embedded {
+            max-width: 100%;
+            border: 1px solid #ccc;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container"></div>
+    <div id="input-bar">
+        <input id="query" placeholder="Type your message…" />
+        <button id="send">Send</button>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const queryInput = document.getElementById('query');
+        const sendBtn = document.getElementById('send');
+
+        function appendMessage(text, sender = 'bot') {
+            const div = document.createElement('div');
+            div.className = `msg ${sender}`;
+            div.innerHTML = text;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function appendBotResults(results) {
+            const fragment = document.createDocumentFragment();
+            results.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'msg bot';
+                if (r.type === 'text') {
+                    div.textContent = r.content;
+                } else if (r.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = r.url;
+                    img.alt = 'result image';
+                    img.className = 'embedded';
+                    div.appendChild(img);
+                }
+                fragment.appendChild(div);
+            });
+            chatContainer.appendChild(fragment);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function sendQuery() {
+            const text = queryInput.value.trim();
+            if (!text) return;
+            appendMessage(text, 'user');
+            queryInput.value = '';
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: text })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                appendBotResults(data.results);
+            } else {
+                appendMessage('Error retrieving data.', 'bot');
+            }
+        }
+
+        sendBtn.addEventListener('click', sendQuery);
+        queryInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') sendQuery();
+        });
+    </script>
+</body>
+</html>
