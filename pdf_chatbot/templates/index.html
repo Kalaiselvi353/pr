@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Chat Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #128C7E;
+            color: white;
+            text-align: center;
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .upload-section {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .upload-area {
+            border: 2px dashed #128C7E;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            background: #f0f8f7;
+            border-color: #0a6b5d;
+        }
+
+        .upload-area.dragover {
+            background: #e8f5f3;
+            border-color: #128C7E;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-btn {
+            background: #128C7E;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            background: #0a6b5d;
+        }
+
+        .upload-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status-section {
+            padding: 20px;
+            flex-grow: 1;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .status-label {
+            font-weight: 500;
+        }
+
+        .status-value {
+            color: #128C7E;
+            font-weight: bold;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #e5ddd5;
+        }
+
+        .chat-header {
+            background: #128C7E;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .chat-status {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: #DCF8C6;
+            padding: 10px 15px;
+            border-radius: 18px 18px 5px 18px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .message.bot {
+            align-self: flex-start;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 18px 18px 18px 5px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .message-content {
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .message-results {
+            margin-top: 10px;
+        }
+
+        .result-item {
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid #128C7E;
+        }
+
+        .result-header {
+            font-weight: bold;
+            color: #128C7E;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .result-image {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .result-image:hover {
+            transform: scale(1.02);
+        }
+
+        .result-table {
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+
+        .result-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .result-table th,
+        .result-table td {
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            text-align: left;
+        }
+
+        .result-table th {
+            background: #128C7E;
+            color: white;
+        }
+
+        .chat-input-area {
+            background: white;
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 14px;
+            resize: none;
+            max-height: 100px;
+            min-height: 40px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #128C7E;
+        }
+
+        .send-btn {
+            background: #128C7E;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .send-btn:hover {
+            background: #0a6b5d;
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            align-self: flex-start;
+            background: white;
+            padding: 15px;
+            border-radius: 18px 18px 18px 5px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #128C7E;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Modal for image viewing */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            margin-top: 5%;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #bbb;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #128C7E;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                order: 2;
+            }
+            
+            .chat-area {
+                height: 70vh;
+                order: 1;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #128C7E;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #0a6b5d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>PDF Chat Assistant</h1>
+                <p>Upload PDFs and ask questions</p>
+            </div>
+            
+            <div class="upload-section">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <p>📄 Drop PDF files here or click to upload</p>
+                    <button class="upload-btn" type="button">Choose Files</button>
+                </div>
+                <input type="file" id="fileInput" multiple accept=".pdf">
+            </div>
+            
+            <div class="status-section">
+                <h3 style="margin-bottom: 15px; color: #333;">System Status</h3>
+                <div class="status-item">
+                    <span class="status-label">PDFs Loaded:</span>
+                    <span class="status-value" id="pdfCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Text Segments:</span>
+                    <span class="status-value" id="textCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Images:</span>
+                    <span class="status-value" id="imageCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Tables:</span>
+                    <span class="status-value" id="tableCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value" id="systemStatus">Not Ready</span>
+                </div>
+                
+                <button class="upload-btn" onclick="rebuildKnowledgeBase()" style="width: 100%; margin-top: 15px;">
+                    Rebuild Knowledge Base
+                </button>
+            </div>
+        </div>
+        
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <div>
+                    <div class="chat-title">PDF Knowledge Assistant</div>
+                    <div class="chat-status" id="chatStatus">Ready to help!</div>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="message-content">
+                        Hello! I'm your PDF assistant. Upload some PDF files using the sidebar, and then ask me questions about their content. I can help you find text, images, tables, and specific information from your documents.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-area">
+                <textarea 
+                    class="chat-input" 
+                    id="messageInput" 
+                    placeholder="Ask me about your PDFs..."
+                    rows="1"
+                ></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <script>
+        let isProcessing = false;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // File input handling
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.querySelector('.upload-area');
+
+            fileInput.addEventListener('change', handleFileUpload);
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+
+            // Enter key in chat input
+            const messageInput = document.getElementById('messageInput');
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Auto-resize textarea
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files).filter(file => 
+                file.type === 'application/pdf'
+            );
+            
+            if (files.length > 0) {
+                uploadFiles(files);
+            }
+        }
+
+        function handleFileUpload(e) {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                uploadFiles(files);
+            }
+        }
+
+        async function uploadFiles(files) {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            const uploadBtn = document.querySelector('.upload-btn');
+            const originalText = uploadBtn.textContent;
+            uploadBtn.textContent = 'Processing...';
+            uploadBtn.disabled = true;
+
+            const formData = new FormData();
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    addMessage('bot', `Successfully processed ${files.length} PDF file(s):\n${result.files.map(f => `• ${f.filename} (${f.pages} pages)`).join('\n')}`);
+                    updateStatus();
+                } else {
+                    addMessage('bot', `Error: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                addMessage('bot', 'Error uploading files. Please try again.');
+            } finally {
+                isProcessing = false;
+                uploadBtn.textContent = originalText;
+                uploadBtn.disabled = false;
+                document.getElementById('fileInput').value = '';
+            }
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || isProcessing) return;
+
+            // Add user message
+            addMessage('user', message);
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+
+            // Show typing indicator
+            showTypingIndicator();
+            isProcessing = true;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: message })
+                });
+
+                const result = await response.json();
+                hideTypingIndicator();
+
+                if (response.ok) {
+                    addMessage('bot', result.response, result.results);
+                } else {
+                    addMessage('bot', `Error: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                hideTypingIndicator();
+                addMessage('bot', 'Sorry, I encountered an error. Please try again.');
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        function addMessage(sender, content, results = null) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            let messageHTML = `<div class="message-content">${content}</div>`;
+
+            if (results && results.length > 0) {
+                messageHTML += '<div class="message-results">';
+                
+                results.forEach((result, index) => {
+                    messageHTML += `<div class="result-item">`;
+                    messageHTML += `<div class="result-header">${result.type.toUpperCase()} - Page ${result.page} (Score: ${result.score.toFixed(2)})</div>`;
+                    
+                    if (result.type === 'image' && result.image_data) {
+                        messageHTML += `<img class="result-image" src="data:image/png;base64,${result.image_data}" onclick="openModal(this.src)" alt="Result image">`;
+                        if (result.content) {
+                            messageHTML += `<p style="margin-top: 5px; font-size: 12px;">${result.content}</p>`;
+                        }
+                    } else if (result.type === 'table' && result.headers && result.data) {
+                        messageHTML += '<div class="result-table">';
+                        messageHTML += '<table>';
+                        messageHTML += '<thead><tr>';
+                        result.headers.forEach(header => {
+                            messageHTML += `<th>${header}</th>`;
+                        });
+                        messageHTML += '</tr></thead>';
+                        messageHTML += '<tbody>';
+                        result.data.slice(0, 5).forEach(row => { // Show max 5 rows
+                            messageHTML += '<tr>';
+                            result.headers.forEach(header => {
+                                messageHTML += `<td>${row[header] || ''}</td>`;
+                            });
+                            messageHTML += '</tr>';
+                        });
+                        messageHTML += '</tbody></table>';
+                        messageHTML += '</div>';
+                    } else {
+                        messageHTML += `<p>${result.content}</p>`;
+                    }
+                    
+                    messageHTML += '</div>';
+                });
+                
+                messageHTML += '</div>';
+            }
+
+            messageDiv.innerHTML = messageHTML;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+
+                document.getElementById('pdfCount').textContent = status.pdf_count;
+                document.getElementById('textCount').textContent = status.content_counts.text;
+                document.getElementById('imageCount').textContent = status.content_counts.images;
+                document.getElementById('tableCount').textContent = status.content_counts.tables;
+                document.getElementById('systemStatus').textContent = status.knowledge_base_ready ? 'Ready' : 'Not Ready';
+                document.getElementById('chatStatus').textContent = status.knowledge_base_ready ? 'Ready to answer questions!' : 'Upload PDFs to get started';
+
+                // Update status colors
+                const statusElement = document.getElementById('systemStatus');
+                statusElement.style.color = status.knowledge_base_ready ? '#128C7E' : '#e74c3c';
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+
+        async function rebuildKnowledgeBase() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'Rebuilding...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/rebuild', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    addMessage('bot', result.message);
+                    updateStatus();
+                } else {
+                    addMessage('bot', `Error: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Rebuild error:', error);
+                addMessage('bot', 'Error rebuilding knowledge base. Please try again.');
+            } finally {
+                isProcessing = false;
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function openModal(src) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'block';
+            modalImg.src = src;
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside the image
+        window.onclick = function(event) {
+            const modal = document.getElementById('imageModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
